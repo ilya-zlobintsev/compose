@@ -1,0 +1,51 @@
+version: '2'
+
+services:
+  db:
+    image: mariadb
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    restart: unless-stopped
+    networks:
+      - proxy
+    volumes:
+      - $DOCKER_VOLUMES/nextcloud/db:/var/lib/mysql
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD=1
+      - MYSQL_PASSWORD
+      - MYSQL_DATABASE
+      - MYSQL_USER
+  app:
+    image: nextcloud:latest
+    links:
+      - db
+    volumes:
+        - $DOCKER_VOLUMES/nextcloud/data:/var/www/html
+    restart: unless-stopped
+    networks:
+      - proxy
+    environment:
+      - MYSQL_DATABASE
+      - MYSQL_USER
+      - MYSQL_HOST
+      - MYSQL_PASSWORD
+      - NEXTCLOUD_ADMIN_USER
+      - NEXTCLOUD_ADMIN_PASSWORD
+      - NEXTCLOUD_TRUSTED_DOMAINS=$HOST
+      - TRUSTED_PROXIES=$HOST
+      - OVERWRITEHOST=$HOST
+      - OVERWRITEPROTOCOL=https
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextcloud-http.entrypoints=web"
+      - "traefik.http.routers.nextcloud-http.rule=Host(`${HOST}`)"
+      - "traefik.http.routers.nextcloud-http.middlewares=https-redirect@file"
+      - "traefik.http.routers.nextcloud.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud.rule=Host(`${HOST}`)"
+      - "traefik.http.routers.nextcloud.tls=true"
+      - "traefik.http.routers.nextcloud.tls.certresolver=main"
+
+        
+networks:
+  proxy:
+    external:
+      name: traefik_proxy

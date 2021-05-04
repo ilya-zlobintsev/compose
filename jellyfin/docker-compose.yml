@@ -1,0 +1,36 @@
+version: "3"
+
+services:
+  jellyfin:
+    image: linuxserver/jellyfin
+    environment:
+      - PUID
+      - PGID
+      - TZ
+      #- UMASK_SET=022 #optional
+    restart: unless-stopped
+    networks:
+      - proxy
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+      - /dev/dri/card0:/dev/dri/card0
+      # RPi 4
+      #- /dev/vchiq:/dev/vchiq
+    volumes:
+      - $DOCKER_VOLUMES/jellyfin/config:/config
+      - $MEDIA_PATH:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin-http.entrypoints=web"
+      - "traefik.http.routers.jellyfin-http.rule=Host(`${HOST}`)"
+      - "traefik.http.routers.jellyfin-http.middlewares=https-redirect@file"
+      - "traefik.http.routers.jellyfin.entrypoints=websecure"
+      - "traefik.http.routers.jellyfin.rule=Host(`${HOST}`)"
+      - "traefik.http.routers.jellyfin.tls=true"
+      - "traefik.http.routers.jellyfin.tls.certresolver=main"
+    restart: unless-stopped
+
+networks:
+  proxy:
+    external:
+      name: traefik_proxy

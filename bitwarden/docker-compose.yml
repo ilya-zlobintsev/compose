@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  bitwarden:
+    image: vaultwarden/server:latest
+    volumes:
+      - $DOCKER_VOLUMES/bitwarden/:/data/
+    networks:                                                                                
+      - proxy                                                                                
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.bitwarden-ui-https.rule=Host(`${HOST}`)
+      - traefik.http.routers.bitwarden-ui-https.entrypoints=websecure
+      - traefik.http.routers.bitwarden-ui-https.tls.certResolver=main
+      - traefik.http.routers.bitwarden-ui-https.tls=true
+      - traefik.http.routers.bitwarden-ui-https.service=bitwarden-ui
+      - traefik.http.routers.bitwarden-ui-http.rule=Host(`${HOST}`)
+      - traefik.http.routers.bitwarden-ui-http.entrypoints=web
+      - traefik.http.routers.bitwarden-ui-http.middlewares=https-redirect@file
+      - traefik.http.routers.bitwarden-ui-http.service=bitwarden-ui
+      - traefik.http.services.bitwarden-ui.loadbalancer.server.port=80
+      - traefik.http.routers.bitwarden-websocket-https.rule=Host(`${HOST}`) && Path(`/notifications/hub`)
+      - traefik.http.routers.bitwarden-websocket-https.entrypoints=websecure
+      - traefik.http.routers.bitwarden-websocket-https.tls=true
+      - traefik.http.routers.bitwarden-websocket-https.tls.certResolver=main
+      - traefik.http.routers.bitwarden-websocket-https.service=bitwarden-websocket
+      - traefik.http.routers.bitwarden-websocket-http.rule=Host(`${HOST}`) && Path(`/notifications/hub`)
+      - traefik.http.routers.bitwarden-websocket-http.entrypoints=web
+      - traefik.http.routers.bitwarden-websocket-http.middlewares=https-redirect@file
+      - traefik.http.routers.bitwarden-websocket-http.service=bitwarden-websocket
+      - traefik.http.services.bitwarden-websocket.loadbalancer.server.port=3012
+
+networks:
+  proxy:
+    external:
+      name: traefik_proxy

@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  adguard:
+    image: adguard/adguardhome
+    volumes:
+      - $DOCKER_VOLUMES/adguard/work:/opt/adguardhome/work
+      - $DOCKER_VOLUMES/adguard/conf:/opt/adguardhome/conf
+    networks:
+      - proxy
+    restart: unless-stopped
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+        #- 127.0.0.1:8976:8070/tcp
+        # 3000:3000
+        # 853:853
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adguard-web.rule=Host(`${HOST}`)"
+      - "traefik.http.services.adguard-web.loadbalancer.server.scheme=http"
+      - "traefik.http.services.adguard-web.loadbalancer.server.port=8070"
+      - "traefik.http.routers.adguard-web.middlewares=adguard-strip-prefix"
+      - "traefik.http.routers.adguard-web.middlewares=lan-only@file"
+
+networks:
+  proxy:
+    external:
+      name: traefik_proxy
